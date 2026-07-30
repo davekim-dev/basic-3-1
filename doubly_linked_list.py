@@ -49,15 +49,7 @@ class DoublyLinkedList:
         self._link_after(self._tail.prev, node)
         self._size += 1
         return node
-
-    def remove_front(self):
-        """맨 앞 노드를 제거하고 그 data를 반환한다. 비어있으면 None. O(1)."""
-        if self.is_empty():
-            return None
-        node = self._head.next
-        self._unlink(node)
-        self._size -= 1
-        return node.data
+    # hash.map chaing에 관련된 내용 (연결 리스트의 역할이므로 뒤에서부터 노드 추가)
 
     def remove_back(self):
         """맨 뒤 노드를 제거하고 그 data를 반환한다. 비어있으면 None. O(1)."""
@@ -91,9 +83,14 @@ class DoublyLinkedList:
         node.next = anchor.next
         anchor.next.prev = node
         anchor.next = node
+# anchor는 그냥 기준임!
+# anchor -- () -- anchor.next 이렇게 설정한 다음, anchor.next의 prev에 node를 넣는 개념임
+# "현재 마지막 노드"를 찾도록 임의로 설정 node.prev = anchor >> 맨 뒤에 move_to_back 할 때 "현재 마지막 노드"를 찾아야 함
+# 만약 node.next = anchor라고 했다면 move_to_front 할 때 "맨 처음 노드"를 찾아야 하겠지
 
     def _unlink(self, node):
         node.prev.next = node.next
         node.next.prev = node.prev
         node.prev = None
         node.next = None
+# 중간의 노드가 삭제되었을 때 앞 뒤 노드를 연결하는 역할

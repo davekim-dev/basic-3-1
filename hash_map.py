@@ -21,6 +21,7 @@ class HashMap:
     def __init__(self, initial_capacity=_INITIAL_CAPACITY):
         self._capacity = initial_capacity
         self._buckets = [DoublyLinkedList() for _ in range(self._capacity)]
+        #버킷을 하나의 이중연결리스트로 만든다는 내용 (체이닝) "self.capacity 만큼 DDL을 만들기를 반복해라"
         self._size = 0
 
     def size(self):
@@ -31,7 +32,7 @@ class HashMap:
         bucket, node = self._find_node(key)
         if node is not None:
             node.data = (key, value)
-            return
+            return  # key가 이미 있으면 그냥 갱신하는 것으로 끝 (node is not None = 노드가 있다)
         bucket.insert_back((key, value))
         self._size += 1
         if self._size / self._capacity > _LOAD_FACTOR_LIMIT:
@@ -39,7 +40,7 @@ class HashMap:
 
     def get(self, key):
         """key에 대응하는 값을 반환한다. 없으면 None. 평균 O(1)."""
-        _, node = self._find_node(key)
+        _, node = self._find_node(key)   #bucket, node와 동일.. 근데 bucket은 안 쓸 것이기 때문에 "_"로 버리는 것
         if node is None:
             return None
         return node.data[1]
@@ -69,8 +70,9 @@ class HashMap:
     def _hash(self, key, capacity=None):
         """다항식 누적 해시. 31을 곱해 문자열 조합이 버킷에 고르게 분산되게 한다."""
         capacity = capacity if capacity is not None else self._capacity
+        # A if 조건 else B = capacity is not None 이면 capacity = capacity / else면 capacity= self._capacity
         h = 0
-        for ch in key:
+        for ch in key:  #ch는 key의 character
             h = (h * 31 + ord(ch)) % capacity
         return h
 
@@ -79,11 +81,11 @@ class HashMap:
 
         체인 길이는 로드 팩터로 제한되므로 평균적으로 O(1)에 가깝다.
         """
-        index = self._hash(key)
-        bucket = self._buckets[index]
-        for node in bucket.iter_nodes():
-            if node.data[0] == key:
-                return bucket, node
+        index = self._hash(key)  #찾고자 하는 key의 hash를 분석
+        bucket = self._buckets[index]  # hash와 맞는 bucket을 찾고
+        for node in bucket.iter_nodes():   # 해당 bucket에 있는 리스트를 탐색 (iter_nodes()= node들을 반복)
+            if node.data[0] == key: #node.data 는 key:value임! node.data[0] = key:value에서 key(index=0)을 꺼내겠다는 것
+                return bucket, node  # bucket 과 node(key:value)를 반환
         return bucket, None
 
     def _resize(self):
