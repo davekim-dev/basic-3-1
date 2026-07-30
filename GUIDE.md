@@ -124,19 +124,36 @@ SET key value 실행 시:
    - used_memory에서 기존 key+value 크기를 뺀다
    - 기존 TTL 항목을 무효화(초기화)한다  ← "덮어쓰면 TTL 초기화" 규칙
 
+   # SET 으로 데어터를 저장할 때, TTL을 설정하지 않았다면 그 데이터는 TTL -1(TTL이 없음)상태가 됨
+
 2. 단일 엔트리 크기 검사:
    entry_size = len(utf8(key)) + len(utf8(value))
    if maxmemory > 0 and entry_size > maxmemory:
        → 저장하지 않고 OOM 에러 반환, 종료
 
+   # 데이터가 maxmemory를 넘게 들어오는 것을 방지 (OOM 방지느낌)
+   # 즉, 저장하려는 데이터가 maxmemory를 넘지 않는가  (새로운 데이터를 저장 후 maxmemroy를 넘는가 는 5번 사항)
+   # maxmemory > 0 = 메모리 제한이 있다   (maxmemory 0 = 메모리 제한이 없다)
+
 3. 데이터 저장 + used_memory += entry_size
+
+   # 그냥 쉽게 SET한 entry_size 가 use_memory 에 추가된다
+
 4. LRU 리스트 맨 앞으로 삽입/이동 (move_to_front)
+
+   # 말 그대로 LRU 이중 연결 리스트의 맨 앞으로 보낸다는 내용 (SET하면서 만졌으니까)
+   # dummy.head가 있으면 move_to_front 했을 때, dummy.head.next의 위치로
 
 5. while maxmemory > 0 and used_memory > maxmemory:
        victim_key = lru_list.remove_back() 으로 얻은 키
        data_map, lru_map, (TTL 힙은 lazy) 에서 victim_key 제거
        used_memory -= victim_key의 key+value 크기
        evicted_keys += 1
+
+   # 새로운 데이터를 정상적으로 추가했는데 메모리 한계치를 넘을 때 발생
+   # LRU에 따라 LRU 이중 연결 리스트에서 가장 tail에 있는 entry를 삭제
+   # 해당 데이터와 관련된 TTL은 같이 삭제X 방치함, 차피 나중에 할거니까 (최소힙에서 탐색하는데 연산이 오래 걸림)
+   # TTL에서 pop하면서 해당 TTL에 해당되는 데이터를 찾음 > 있으면 다른 map에 있는 데이터도 삭제 / 없으면 그냥 삭제
 ```
 
 **used_memory 계산 공식** (요구사항 그대로)
