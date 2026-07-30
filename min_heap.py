@@ -21,7 +21,7 @@ class MinHeap:
         """루트(가장 작은 원소)를 제거하지 않고 확인한다. O(1)."""
         if self.is_empty():
             return None
-        return self._data[0]
+        return self._data[0] #data[0] : 리스트 중 가장 첫 번째 = peak(가장 작은 원소)
 
     def push(self, item):
         """원소를 삽입한다. 맨 끝에 붙인 뒤 위로 올리며 힙 조건을 복구한다. O(log n)."""
@@ -49,17 +49,20 @@ class MinHeap:
             else:
                 break
 
-    def _heapify_down(self, index):
+    def _heapify_down(self, index):  #pop 이후 마지막 배열을 root로 올린 뒤 시작
         size = len(self._data)
-        while True:
+        while True: # 리스트 끝까지 확인해야 하니까 True로 진행
             left = 2 * index + 1
             right = 2 * index + 2
             smallest = index
             if left < size and self._data[left][0] < self._data[smallest][0]:
                 smallest = left
+            # left < size :: 왼쪽 자식이 배열 안에 있는지 확인 (2*index +1 < size)
+            # self._data[left][0]<self._data[smallest][0] :: "left 자식"이 "smallest"보다 작으면 
+            # smallest =left :: smallest를 left 자식 으로 대입(변경)
             if right < size and self._data[right][0] < self._data[smallest][0]:
                 smallest = right
-            if smallest == index:
+            if smallest == index:  # index(자신)이 가장 작다면 smallest :: 비교할 left, right 자식들보다 내가 더 작다면 종료
                 break
             self._swap(index, smallest)
             index = smallest

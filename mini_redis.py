@@ -122,7 +122,7 @@ class MiniRedis:
 
     # ---------------- TTL 명령어 ----------------
 
-    def cmd_expire(self, key, seconds_str):
+    def cmd_expire(self, key, seconds_str): # 0= 설정X , 1= 설정O
         try:
             seconds = int(seconds_str)
         except ValueError:
