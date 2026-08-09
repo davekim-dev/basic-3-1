@@ -14,6 +14,8 @@ class Node:
         self.data = data
         self.prev = None
         self.next = None
+# 아직은 독립된 개체 = 포인터가 가리키는 이웃이 없음
+# _link_after 에서 포인터(prev, next)가 채워짐
 
 
 class DoublyLinkedList:
@@ -29,6 +31,7 @@ class DoublyLinkedList:
         self._head.next = self._tail
         self._tail.prev = self._head
         self._size = 0
+
 
     def size(self):
         return self._size
@@ -70,6 +73,7 @@ class DoublyLinkedList:
         """이미 리스트에 있는 노드를 맨 앞으로 옮긴다 (LRU 갱신용). O(1)."""
         self._unlink(node)
         self._link_after(self._head, node)
+# node의 현재 위치에서 unlink (떼어낸 후) 후 self._head 뒤에 link_after
 
     def iter_nodes(self):
         """맨 앞부터 맨 뒤까지 노드 참조를 순서대로 순회한다 (해시맵 체이닝 탐색용)."""
@@ -77,16 +81,16 @@ class DoublyLinkedList:
         while current is not self._tail:
             yield current
             current = current.next
+# yield(제네레이터)사용 = 계속 반복X, 원하는 값이 나오면 중지
 
     def _link_after(self, anchor, node):
         node.prev = anchor
         node.next = anchor.next
         anchor.next.prev = node
         anchor.next = node
-# anchor는 그냥 기준임!
-# anchor -- () -- anchor.next 이렇게 설정한 다음, anchor.next의 prev에 node를 넣는 개념임
-# "현재 마지막 노드"를 찾도록 임의로 설정 node.prev = anchor >> 맨 뒤에 move_to_back 할 때 "현재 마지막 노드"를 찾아야 함
-# 만약 node.next = anchor라고 했다면 move_to_front 할 때 "맨 처음 노드"를 찾아야 하겠지
+# insert_front , insert_back , move_to_front 에 모두 사용됨
+# anchor를 ._head 로 잡으면 => insert_front , move_to_front
+# anchor를 ._tail 로 잡으면 => insert_back
 
     def _unlink(self, node):
         node.prev.next = node.next
@@ -94,3 +98,9 @@ class DoublyLinkedList:
         node.prev = None
         node.next = None
 # 중간의 노드가 삭제되었을 때 앞 뒤 노드를 연결하는 역할
+# A <-> B <-> C <-> D
+#      ^prev  ^node  ^next
+# node.prev.next = node.next  B.next = D 이렇게 바꾸라는 것 
+# node.next.prev = node.prev  D.prev = B 이렇게 바꾸라는 것
+
+# 이때 unlink한 C는 GC 전까지 data가 남아있음!! 남아있는 data를 재사용 하는 것이 move_to_front임!!

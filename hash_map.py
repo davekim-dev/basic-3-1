@@ -14,8 +14,8 @@ _LOAD_FACTOR_LIMIT = 0.75
 class HashMap:
     """key -> value 를 저장하는 범용 해시맵.
 
-    value로는 문자열뿐 아니라 다른 자료구조의 노드 참조도 저장할 수 있다
-    (예: mini_redis.py의 lru_map은 key -> DoublyLinkedList 노드 참조를 저장).
+    value로는 문자열뿐 아니라 임의의 객체도 저장할 수 있다
+    (예: mini_redis.py의 data_map은 key -> _Entry(value, lru_node) 객체를 저장).
     """
 
     def __init__(self, initial_capacity=_INITIAL_CAPACITY):
@@ -23,6 +23,9 @@ class HashMap:
         self._buckets = [DoublyLinkedList() for _ in range(self._capacity)]
         #버킷을 하나의 이중연결리스트로 만든다는 내용 (체이닝) "self.capacity 만큼 DDL을 만들기를 반복해라"
         self._size = 0
+
+        #DDL이지만 사실상 bucket,, size=0 이니까! node가 없는 것!!
+        #'체이닝 방법을 사용하기로 했으니 size>0 되면 DDL로 늘릴게! 지금은 size=0이야' 이런 뜻
 
     def size(self):
         return self._size
@@ -53,6 +56,8 @@ class HashMap:
         bucket.remove_node(node)
         self._size -= 1
         return True
+# 체이닝을 DDL로 했기 때문에 삭제가 유용함 unlink로 끝! 
+# if Singly Linked List, 포인터(prev, next)가 없기에 "순회"해야 함!! >> O(체인 길이)
 
     def contains(self, key):
         """key 존재 여부를 반환한다. 평균 O(1)."""
@@ -78,15 +83,17 @@ class HashMap:
 
     def _find_node(self, key):
         """key가 속한 버킷과, 체인 안에서 key와 일치하는 노드를 찾아 반환한다.
-
         체인 길이는 로드 팩터로 제한되므로 평균적으로 O(1)에 가깝다.
         """
         index = self._hash(key)  #찾고자 하는 key의 hash를 분석
         bucket = self._buckets[index]  # hash와 맞는 bucket을 찾고
         for node in bucket.iter_nodes():   # 해당 bucket에 있는 리스트를 탐색 (iter_nodes()= node들을 반복)
-            if node.data[0] == key: #node.data 는 key:value임! node.data[0] = key:value에서 key(index=0)을 꺼내겠다는 것
+            if node.data[0] == key: 
+                #node.data 는 key:value임! node.data[0] = key:value에서 key(index=0)을 꺼내겠다는 것
+                #node.data = (key, vale) 임! data[0] = key 라는 말
                 return bucket, node  # bucket 과 node(key:value)를 반환
         return bucket, None
+        #이 부분은 node.data[0] != key 일 경우에 여기로 빠지는 것!! node를 못 찾음
 
     def _resize(self):
         """버킷 수를 2배로 늘리고 모든 항목을 새 버킷 기준으로 재해싱한다."""
