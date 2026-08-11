@@ -57,6 +57,7 @@ class _Entry:
 # 1. 해시맵 버킷의 체인을 순회해서 node.data[0] == key인 노드를 찾음 (여기까진 맞음, O(체인 길이))
 # 2. 찾은 노드의 node.data[1]이 _Entry 객체 (entry)
 # 3. entry.value로 실제 값을, entry.lru_node로 LRU DLL 안의 노드 참조를 바로 얻음 → LRU 쪽은 순회 없이 O(1) 접근
+
 class MiniRedis:
     """String 명령어 + 메모리 관리 + TTL 관리를 담당하는 엔진."""
 
@@ -69,6 +70,9 @@ class MiniRedis:
         self.maxmemory = 0
         self.evicted_keys = 0
 
+    # 무조건 사용하는 lru, data는 HashMap entry에
+    # 따로 설정해야 하는 ttl은 따로 HashMap에 들어가도록 배치
+
     # ---------------- String 명령어 ----------------
 
     def cmd_set(self, key, value):
@@ -77,25 +81,28 @@ class MiniRedis:
         if self.maxmemory > 0 and entry_size > self.maxmemory:
             return RedisError("OOM command not allowed when used_memory > 'maxmemory'")
 
-        entry = self.data_map.get(key)
-        if entry is not None:
+        entry = self.data_map.get(key) #key값을 get해서 entry를 가져온 상태
+        if entry is not None: #해당 key값에 이미 entry가 있다면, 
             self.used_memory -= self._entry_size(key, entry.value)
             self.ttl_map.remove(key)  # 기존 키를 덮어쓰면 TTL은 초기화(삭제)한다
-            entry.value = value
+            entry.value = value 
+            # 이미 있는 entry.lru_node도 바꿔버리면 lru_DLL에서 참조값이 없는 node가 생겨버리는 오류!
         else:
             entry = _Entry(value)
-            self.data_map.put(key, entry)
+            self.data_map.put(key, entry)  #data_map에 key, entry(value, lru_node)를 넘김
 
         self.used_memory += entry_size
-        self._touch_lru(key, entry)
+        self._touch_lru(key, entry)  #key와 entry.lru_node /여기서 lru_node가 채워짐
         self._evict_if_needed()
         return OK
 
     def cmd_get(self, key):
-        if self._expire_if_needed(key):
+        if self._expire_if_needed(key):  
+        #ttl에서 만료되어서 사라졌는가만 확인!!(key-entry가 존재한다는 보장X)
             return None
-        entry = self.data_map.get(key)
-        if entry is None:
+        entry = self.data_map.get(key) 
+        if entry is None:  
+        #key값에 해당되는 entry가 있는가?/ 해당 key값으로 set을 안 했거나, del로 지운 경우
             return None
         self._touch_lru(key, entry)  # 성공한 GET만 LRU 갱신
         return entry.value
@@ -177,7 +184,7 @@ class MiniRedis:
 
     # ---------------- 내부 헬퍼 ----------------
 
-    @staticmethod
+    @staticmethod  #내부 데코레이터?!
     def _entry_size(key, value):
         """요구사항의 used_memory 공식: utf-8 바이트 길이 합. 자료구조 오버헤드는 제외."""
         return len(key.encode("utf-8")) + len(value.encode("utf-8"))
@@ -185,7 +192,8 @@ class MiniRedis:
     def _touch_lru(self, key, entry):
         """entry를 LRU 리스트 맨 앞으로 옮긴다(없으면 새로 추가). O(1)."""
         if entry.lru_node is None:
-            entry.lru_node = self.lru_list.insert_front(key)
+            entry.lru_node = self.lru_list.insert_front(key) 
+            #lru_node가 없으면 lru_node = lru_list.insert_front 가 리턴하는 값
         else:
             self.lru_list.move_to_front(entry.lru_node)
 
