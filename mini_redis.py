@@ -115,8 +115,8 @@ class MiniRedis:
         return 1
 
     def cmd_exists(self, key):
-        if self._expire_if_needed(key):
-            return 0
+        if self._expire_if_needed(key):   
+            return 0  #expire_if_needed 호출에서 방금 만료되어서 지워졌다 = return 0
         return 1 if self.data_map.contains(key) else 0
 
     def cmd_dbsize(self):
@@ -131,7 +131,7 @@ class MiniRedis:
 
     def cmd_config_set_maxmemory(self, bytes_str):
         try:
-            value = int(bytes_str)
+            value = int(bytes_str) #cli.py 에서의 tokens 때문에
         except ValueError:
             return RedisError("ERR value is not an integer or out of range")
         if value < 0:
@@ -166,12 +166,15 @@ class MiniRedis:
             self._purge_key(key)  # 즉시 만료 처리
             return 1
 
-        expire_at = time.time() + seconds
+        expire_at = time.time() + seconds 
         self.ttl_map.put(key, expire_at)  # 기존 TTL이 있어도 put이 덮어써 갱신된다
         self.ttl_heap.push((expire_at, key))
         return 1
+# map = key에 대응하는 value들 -> key, expire_at(value)
+# heap = 정렬 기준 -> expire_at을 기준으로 정렬 -> expire_at , key
+# 실제 heap 코드에서도 index[0], paren†[0] 처럼 expire_at 기준을 index0에 둠!!
 
-    def cmd_ttl(self, key):
+    def cmd_ttl(self, key):  #이미 만료되었으면: -2 /ttl 설정 없으면: -1 /아직 만료 전이면: 0
         if self._expire_if_needed(key):
             return -2
         if not self.data_map.contains(key):
@@ -184,7 +187,7 @@ class MiniRedis:
 
     # ---------------- 내부 헬퍼 ----------------
 
-    @staticmethod  #내부 데코레이터?!
+    @staticmethod  #내부 데코레이터: self인자가 없다!
     def _entry_size(key, value):
         """요구사항의 used_memory 공식: utf-8 바이트 길이 합. 자료구조 오버헤드는 제외."""
         return len(key.encode("utf-8")) + len(value.encode("utf-8"))
