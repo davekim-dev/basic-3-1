@@ -232,7 +232,9 @@ class MiniRedis:
             if expire_at > now:
                 break  # 가장 빠른 것도 아직 안 지났다면 나머지도 모두 안 지났다
             self.ttl_heap.pop()
-            current_expire = self.ttl_map.get(key)
+            current_expire = self.ttl_map.get(key) 
+    #heap은 push이기 때문에 유효하지 않은 expire_at 남아있음!! 
+    #유효한 expire_at은 put으로 갱신되는 ttl_map에 있기에 가져오는 것! (cmd_expire 참고)
             if current_expire is not None and current_expire == expire_at:
                 self._purge_key(key)
 

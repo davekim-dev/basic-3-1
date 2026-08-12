@@ -2,6 +2,10 @@
 
 TTL 관리를 위해 (expire_at, key) 튜플을 담는다. 완전 이진 트리를 배열로
 표현하여, 부모/자식 관계를 포인터가 아닌 인덱스 산술만으로 계산한다.
+
+부모 <= 자식
+
+peek() , pop() 할 때 O(1)인 것, push, 유지할 땐 O(log n)
 """
 
 
@@ -21,7 +25,8 @@ class MinHeap:
         """루트(가장 작은 원소)를 제거하지 않고 확인한다. O(1)."""
         if self.is_empty():
             return None
-        return self._data[0] #data[0] : 리스트 중 가장 첫 번째 = peak(가장 작은 원소)
+        return self._data[0] 
+    #data[0] : 리스트 중 가장 첫 번째 = peek(가장 작은 원소)
 
     def push(self, item):
         """원소를 삽입한다. 맨 끝에 붙인 뒤 위로 올리며 힙 조건을 복구한다. O(log n)."""
@@ -36,13 +41,15 @@ class MinHeap:
         top = self._data[0]
         last = self._data.pop()
         if self._data:
-            self._data[0] = last
+            self._data[0] = last  #기존 root를 last로 대체(새로운 root 지정) -> 교체:O(1)
             self._heapify_down(0)
         return top
 
-    def _heapify_up(self, index):
+    def _heapify_up(self, index): 
+    # 최소힙 구조를 유지하기 위해서 list에 값 추가할 때마다 진행 O(logn) 어쩔 수 없는 비용
         while index > 0:
             parent = (index - 1) // 2
+            # index[3]의 부모는 index[1]!  부모:index[1] 자식:index[2](좌), index[3](우)
             if self._data[index][0] < self._data[parent][0]:
                 self._swap(index, parent)
                 index = parent
@@ -62,7 +69,8 @@ class MinHeap:
             # smallest =left :: smallest를 left 자식 으로 대입(변경)
             if right < size and self._data[right][0] < self._data[smallest][0]:
                 smallest = right
-            if smallest == index:  # index(자신)이 가장 작다면 smallest :: 비교할 left, right 자식들보다 내가 더 작다면 종료
+            if smallest == index:  
+        # index(자신)이 가장 작다면 smallest :: 비교할 left, right 자식들보다 내가 더 작다면 종료
                 break
             self._swap(index, smallest)
             index = smallest
