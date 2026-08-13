@@ -2,6 +2,9 @@
 
 사용자 입력을 읽어 토큰으로 분리하고, 명령어별 인자 개수를 검사해 mini_redis
 엔진에 위임한 뒤, 엔진이 돌려준 값을 Redis 스타일 문자열로 출력한다.
+
+즉, 입출력 담당
+입력(cli) - 엔진(redis) - 출력(cli)
 """
 
 from mini_redis import MiniRedis, OKStatus, RawText, RedisError
@@ -14,16 +17,21 @@ def parse_line(line):
     tokens = []
     i = 0
     n = len(line)
-    while i < n:
+    while i < n: #흝지 않은 문자가 남아있으면 반복
         while i < n and line[i].isspace():
-            i += 1
+                                            #isspace(): 공백, 탭 판별   
+                                            #' '.isspace()   # True
+                                            #'\t'.isspace()  # True
+                                            #'a'.isspace()   # False
+            i += 1  # 문자가 안 끝난 상태에서 공백,탭이 나오면 넘어가기 
+                    # i<n 이 없으면 문자열 끝난 뒤의 공백도 참조하기 때문에 오류!!
         if i >= n:
             break
         if line[i] == '"':
             j = i + 1
             while j < n and line[j] != '"':
                 j += 1
-            tokens.append(line[i + 1:j])
+            tokens.append(line[i + 1:j]) # 여기서부터
             i = j + 1
         else:
             j = i
