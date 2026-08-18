@@ -10,6 +10,7 @@
 from mini_redis import MiniRedis, OKStatus, RawText, RedisError
 
 PROMPT = "mini-redis> "
+# " " 안에 있으니 리다이랙션X  그냥 mini-redis>(입력 공간) = cli 디자인
 
 
 def parse_line(line):
@@ -31,19 +32,23 @@ def parse_line(line):
             j = i + 1
             while j < n and line[j] != '"':
                 j += 1
-            tokens.append(line[i + 1:j]) # 여기서부터
+            tokens.append(line[i + 1:j]) # 슬라이싱임! " " 을 사이를 뽑아내겠다는 것
+                                         # "hello world" => hello world
             i = j + 1
         else:
             j = i
             while j < n and not line[j].isspace():
                 j += 1
-            tokens.append(line[i:j])
-            i = j
+            tokens.append(line[i:j]) # 공백 없는 문자열만 있는 부분을 슬라이싱
+            i = j # 맨 위 while 루프를 위해 커서 옮기는 것
     return tokens
-
+# 결과적으로 tokens라는 list에 문자열을 append 하는 것!
+# set A 10 => tokens [set, A, 10]
 
 def format_result(value):
     """엔진이 반환한 값을 Redis 스타일 출력 문자열로 변환한다."""
+    # instance(5, int) => True
+    # instance(hi, int) => False 앞에 있는 애들이 뒤에 있는 애들에 속하는가?
     if isinstance(value, RedisError):
         return "(error) " + value.message
     if isinstance(value, OKStatus):
@@ -70,12 +75,15 @@ def dispatch(engine, tokens):
     command = tokens[0].upper()
 
     if command == "SET":
-        if len(tokens) != 3:
+        if len(tokens) != 3: # set A 10 처럼 len(tokens)=3 이기 때문에!
             return _wrong_args("SET")
         return engine.cmd_set(tokens[1], tokens[2])
+                    #mini_redis의 함수 cmd_set을 불러오는 것!
+                    #def run() 에서 engine = MiniReids 가 되기 때문에 결과적으로
+                    #mini_redis.cmd_set(key=token[1], value=token[2]) 으로 작동하는 것
 
     if command == "GET":
-        if len(tokens) != 2:
+        if len(tokens) != 2: # 명령어 마다 필요한 인자 개수가 다르니까!
             return _wrong_args("GET")
         return engine.cmd_get(tokens[1])
 
@@ -111,6 +119,7 @@ def dispatch(engine, tokens):
 
     if command == "CONFIG":
         if len(tokens) != 4 or tokens[1].upper() != "SET" or tokens[2].lower() != "maxmemory":
+            #upper(), lower()은 대소문자 => tokens[1].uppear() = token[1]에 있는 문자를 대문자로 읽어라!
             return _wrong_args("CONFIG")
         return engine.cmd_config_set_maxmemory(tokens[3])
 
@@ -120,6 +129,7 @@ def dispatch(engine, tokens):
         return engine.cmd_info_memory()
 
     return RedisError("ERR unknown command '" + tokens[0] + "'")
+#def dispatch의 반환
 
 
 def run():
